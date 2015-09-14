@@ -9,6 +9,7 @@ class MO {
 	private $endianess;
 	private $revision;
 	private $numStrings;
+	private $numPlurals = 2;
 	/**
 	 * @var int Offset of the original strings table
 	 */
@@ -18,9 +19,17 @@ class MO {
 	 */
 	private $translationTable;
 	/**
+	 * @var array The headers contained in this MO
+	 */
+	private $headers = array();
+	/**
 	 * @var array Translations by key
 	 */
 	private $translations;
+	/**
+	 * @var \Closure A closure that calculates the index of a translation
+	 */
+	private $plural;
 
 	/**
 	 * Creates a new MO from a string.
@@ -35,6 +44,7 @@ class MO {
 		$this->originalTable = $this->getInt($data, 12);
 		$this->translationTable = $this->getInt($data, 16);
 		$this->parseTranslations($data);
+		$this->setUpPlural();
 	}
 
 	private function parseEndianess($data) {
@@ -79,8 +89,31 @@ class MO {
 	}
 
 	private function addEntry($original, $translation) {
-		$parts = explode(chr(0), $original);
-		$this->translations[$parts[0]] = explode(chr(0), $translation);
+		if($original === '') {
+			//Account for fake newlines
+			$headers = explode("\n", str_replace('\n', "\n", $translation));
+			foreach($headers as $header) {
+				$parts = explode(':', $header, 2);
+				if(isset($parts[1])) {
+					$this->headers[trim($parts[0])] = trim($parts[1]);
+				}
+			}
+		} else {
+			$parts = explode(chr(0), $original);
+			$this->translations[$parts[0]] = explode(chr(0), $translation);
+		}
+	}
+
+	private function setUpPlural() {
+		if(!isset($this->headers['Plural-Forms'])) {
+			return;
+		}
+		if(preg_match('/^\s*nplurals\s*=\s*(\d+)\s*;\s*plural\s*=\s*(.+)$/', $this->headers['Plural-Forms'], $matches)) {
+			$this->numPlurals = (int)$matches[1];
+			eval('$this->plural = function($amount) {
+				return (int)('.str_replace(array('n', ';'), array('$amount', ''), $matches[2]).');
+			};');
+		}
 	}
 
 	/**
@@ -109,7 +142,16 @@ class MO {
 	}
 
 	private function getPluralIndex($amount) {
-		return $amount === 1 ? 0 : 1;
+		if($this->plural !== null) {
+			$plural = $this->plural;
+			$index = $plural($amount);
+		} else {
+			$index = $amount === 1 ? 0 : 1;
+		}
+		if($index >= $this->numPlurals) {
+			return 0;
+		}
+		return $index;
 	}
 
 	private function getTranslation($key, $index = 0) {
