@@ -35,7 +35,8 @@ class MO {
 	 * Creates a new MO from a string.
 	 * 
 	 * @param string $data
-	 * @throws \InvalidArgumentException If $data is not a MO file
+	 * @throws \InvalidArgumentException If $data is not a MO file or the plural header contains unsupported characters
+	 * @throws pluralparser\ParseException If the plural header cannot be parsed to a function
 	 */
 	public function __construct($data) {
 		$this->parseEndianess($data);
@@ -49,9 +50,9 @@ class MO {
 
 	private function parseEndianess($data) {
 		$magic = substr($data, 0, 4);
-		if($magic == pack('V', self::MAGIC)) {
+		if($magic == pack(self::LITTLE, self::MAGIC)) {
 			$this->endianess = self::LITTLE;
-		} else if($magic == pack('N', self::MAGIC)) {
+		} else if($magic == pack(self::BIG, self::MAGIC)) {
 			$this->endianess = self::BIG;
 		} else {
 			throw new \InvalidArgumentException('Invalid magic number');
