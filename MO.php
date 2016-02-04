@@ -109,10 +109,9 @@ class MO {
 			return;
 		}
 		if(preg_match('/^\s*nplurals\s*=\s*(\d+)\s*;\s*plural\s*=\s*(.+)$/', $this->headers['Plural-Forms'], $matches)) {
-			$this->numPlurals = (int)$matches[1];
-			eval('$this->plural = function($amount) {
-				return (int)('.str_replace(array('n', ';'), array('$amount', ''), $matches[2]).');
-			};');
+			$this->numPlurals = (int) $matches[1];
+			$parser = new pluralparser\Parser(str_replace(';', '', $matches[2]));
+			$this->plural = $parser->parse();
 		}
 	}
 
