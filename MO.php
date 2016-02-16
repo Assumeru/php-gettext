@@ -179,4 +179,34 @@ class MO {
 	public function getLength() {
 		return $this->numStrings;
 	}
+
+	/**
+	 * Returns the number of plural forms this language has.
+	 * 
+	 * @return int
+	 */
+	public function getNumberOfPlurals() {
+		return $this->numPlurals;
+	}
+
+	/**
+	 * Returns an associative array of translations by key.
+	 * 
+	 * @return array
+	 */
+	public function getTranslations() {
+		return $this->translations;
+	}
+
+	/**
+	 * Returns a string representation of this language's plural forms formula.
+	 * 
+	 * @return string
+	 */
+	public function getPluralForms() {
+		if(isset($this->headers['Plural-Forms'])) {
+			return $this->headers['Plural-Forms'];
+		}
+		return 'n != 1';
+	}
 }
